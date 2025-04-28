@@ -765,7 +765,7 @@ class CloudSyncService(TaskPathService, CloudTaskServiceMixin, TaskStateMixin):
         cloud_sync = await self._compress(cloud_sync)
 
         cloud_sync["id"] = await self.middleware.call("datastore.insert", "tasks.cloudsync", cloud_sync)
-        await self.middleware.call("service.restart", "cron")
+        await (await self.middleware.call("service.restart", "cron")).wait(raise_error=True)
 
         return await self.get_instance(cloud_sync["id"])
 
@@ -795,7 +795,7 @@ class CloudSyncService(TaskPathService, CloudTaskServiceMixin, TaskStateMixin):
         cloud_sync = await self._compress(cloud_sync)
 
         await self.middleware.call("datastore.update", "tasks.cloudsync", id_, cloud_sync)
-        await self.middleware.call("service.restart", "cron")
+        await (await self.middleware.call("service.restart", "cron")).wait(raise_error=True)
 
         return await self.get_instance(id_)
 
@@ -807,7 +807,7 @@ class CloudSyncService(TaskPathService, CloudTaskServiceMixin, TaskStateMixin):
         await self.middleware.call("cloudsync.abort", id_)
         await self.middleware.call("alert.oneshot_delete", "CloudSyncTaskFailed", id_)
         rv = await self.middleware.call("datastore.delete", "tasks.cloudsync", id_)
-        await self.middleware.call("service.restart", "cron")
+        await (await self.middleware.call("service.restart", "cron")).wait(raise_error=True)
         return rv
 
     @api_method(CloudSyncCreateBucketArgs, CloudSyncCreateBucketResult, roles=["CLOUD_SYNC_WRITE"])
@@ -1060,7 +1060,7 @@ class CloudSyncFSAttachmentDelegate(LockableFSAttachmentDelegate):
     resource_name = 'path'
 
     async def restart_reload_services(self, attachments):
-        await self.middleware.call('service.restart', 'cron')
+        await (await self.middleware.call('service.restart', 'cron')).wait(raise_error=True)
 
 
 async def setup(middleware):
